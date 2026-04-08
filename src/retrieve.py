@@ -3,7 +3,7 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 from pathlib import Path
 
-MODEL_NAME = "intfloat/e5-large-v2"
+MODEL_NAME = "intfloat/e5-base-v2"
 EMBED_FILE = Path("data/processed/sec_embeddings.json")
 
 model = SentenceTransformer(MODEL_NAME)
