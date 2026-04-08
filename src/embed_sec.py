@@ -4,7 +4,7 @@ from pathlib import Path
 
 from sentence_transformers import SentenceTransformer
 
-MODEL_NAME = "intfloat/e5-large-v2"
+MODEL_NAME = "intfloat/e5-base-v2"
 
 INPUT_FILE = Path("data/processed/sec_chunks.json")
 OUTPUT_FILE = Path("data/processed/sec_embeddings.json")

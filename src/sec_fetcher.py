@@ -3,6 +3,7 @@ import re
 import time
 from pathlib import Path
 from typing import Optional, List, Dict
+from bs4 import BeautifulSoup
 
 import requests
 
@@ -206,12 +207,112 @@ def download_text(url: str) -> str:
     return resp.text
 
 
-def plain_text_cleanup(text: str) -> str:
-    text = re.sub(r"\r", "\n", text)
-    text = re.sub(r"\n\s*\n\s*\n+", "\n\n", text)
-    text = re.sub(r"[ \t]+", " ", text)
-    return text.strip()
+def clean_sec_filing_text(raw_text: str) -> str:
+    """
+    SEC raw submission txt -> 분석용 clean text
+    """
 
+    # 1) SEC HEADER 제거
+    raw_text = re.sub(
+        r"<SEC-HEADER>.*?</SEC-HEADER>",
+        " ",
+        raw_text,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+
+    # 2) uuencoded graphic/image block 제거
+    raw_text = re.sub(
+        r"begin\s+\d{3}\s+.*?\n.*?\nend",
+        " ",
+        raw_text,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+
+    # 3) TEXT 블록만 추출
+    text_match = re.search(
+        r"<TEXT>(.*)</TEXT>",
+        raw_text,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+    if text_match:
+        raw_text = text_match.group(1)
+
+    # 4) XBRL wrapper 제거
+    raw_text = re.sub(r"</?XBRL[^>]*>", " ", raw_text, flags=re.IGNORECASE)
+
+    # 5) HTML/XBRL 파싱
+    soup = BeautifulSoup(raw_text, "lxml")
+
+    for tag in soup(["script", "style"]):
+        tag.decompose()
+
+    text = soup.get_text(separator="\n")
+
+    # 6) 남은 SGML/HTML 태그 제거
+    text = re.sub(r"<[^>]+>", " ", text)
+
+    # 7) 줄 단위 잡음 제거
+    cleaned_lines = []
+    noisy_patterns = [
+        "xmlns:",
+        "xbrli:",
+        "xbrldi:",
+        "us-gaap:",
+        "dei:",
+        "link:",
+        "xlink:",
+        "contextref",
+        "unitref",
+        "ix:nonnumeric",
+        "ix:nonfraction",
+        "aapl:",
+    ]
+
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+
+        lower = line.lower()
+
+        # 메타/헤더성 줄 제거
+        if lower.startswith("accession number:"):
+            continue
+        if lower.startswith("conformed submission type:"):
+            continue
+        if lower.startswith("filed as of date:"):
+            continue
+        if lower.startswith("date as of change:"):
+            continue
+        if lower.startswith("public document count:"):
+            continue
+        if lower.startswith("central index key:"):
+            continue
+        if lower.startswith("standard industrial classification:"):
+            continue
+
+        # XBRL namespace/기술 문자열 위주 줄 제거
+        if sum(p in lower for p in noisy_patterns) >= 2:
+            continue
+
+        # 너무 짧고 의미 없는 값들 제거
+        if len(line) <= 3 and lower in {"true", "false", "—"}:
+            continue
+
+        cleaned_lines.append(line)
+
+    text = "\n".join(cleaned_lines)
+
+    # 8) Exhibit 구간 제거 시도
+    # 8-K에서 EX-10.1 같은 첨부문서가 붙는 경우가 많음
+    text = re.split(r"\nEX-\d+(\.\d+)?\n", text, maxsplit=1, flags=re.IGNORECASE)[0]
+
+    # 9) 공백 정리
+    text = re.sub(r"\r", "\n", text)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n\s*\n\s*\n+", "\n\n", text)
+
+    return text.strip()
 
 def save_clean_text(company: str, filing: Dict, text: str, suffix_name: str) -> Path:
     filing_date = filing["filing_date"]
@@ -248,7 +349,7 @@ def fetch_one_filing_txt_only(cik: str, ticker: str, filing: Dict) -> Optional[D
     )
 
     raw_text = download_text(source_url)
-    clean_text = plain_text_cleanup(raw_text)
+    clean_text = clean_sec_filing_text(raw_text)
     text_path = save_clean_text(ticker, filing, clean_text, "clean")
 
     return {
