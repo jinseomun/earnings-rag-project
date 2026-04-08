@@ -4,9 +4,7 @@ from sentence_transformers import SentenceTransformer
 from pathlib import Path
 
 MODEL_NAME = "intfloat/e5-large-v2"
-
 EMBED_FILE = Path("data/processed/sec_embeddings.json")
-CLAIM_FILE = Path("outputs/claims.json")
 
 model = SentenceTransformer(MODEL_NAME)
 
@@ -15,27 +13,34 @@ def cosine_similarity(a, b):
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 
-def main():
+def retrieve_top_chunks_for_claim(claim_text, top_k=3):
     with open(EMBED_FILE, "r", encoding="utf-8") as f:
         chunks = json.load(f)
 
-    with open(CLAIM_FILE, "r", encoding="utf-8") as f:
-        claims = json.load(f)
-
-    query = "query: " + claims[0]["claim"]
+    query = "query: " + claim_text
     query_emb = model.encode([query])[0]
 
-    scores = []
+    scored = []
     for c in chunks:
         sim = cosine_similarity(query_emb, np.array(c["embedding"]))
-        scores.append((sim, c["text"]))
+        scored.append({
+            "score": float(sim),
+            "text": c["text"],
+            "chunk_id": c.get("chunk_id")
+        })
 
-    scores.sort(reverse=True)
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    return scored[:top_k]
 
-    print("\nTop 3 retrieved chunks:\n")
-    for s, text in scores[:3]:
-        print(f"Score: {s:.4f}")
-        print(text[:200])
+
+def main():
+    claim = input("Claim: ").strip()
+    results = retrieve_top_chunks_for_claim(claim, top_k=3)
+
+    print("\nTop retrieved chunks:\n")
+    for r in results:
+        print(f"Score: {r['score']:.4f}")
+        print(r["text"][:300])
         print("-" * 50)
 
 
