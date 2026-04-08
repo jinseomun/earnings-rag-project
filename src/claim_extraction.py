@@ -38,33 +38,47 @@ def extract_json_block(text: str): #json 블록만 추출
 def extract_claims_with_llama(transcript_text: str): #시스템 프롬프트
     system_prompt = (
         "You are a financial analyst assistant. "
-        "Extract only specific, factual, verifiable claims from an earnings call transcript. "
-        "Return only a JSON array. "
-        "Do not include markdown fences or extra explanation."
+        "Extract only the most important factual, specific, verifiable claims from an earnings call transcript. "
+        "Prioritize financially material claims that are likely to be checked against SEC filings, "
+        "such as revenue, profit, EPS, margins, guidance, segment performance, and major growth or decline metrics. "
+        "Ignore vague, repetitive, promotional, or non-material statements. "
+        "Return only a valid JSON array. "
+        "Do not include markdown fences or any explanation."
     )
 
-    user_prompt = f""" 
-Extract key factual claims from the following earnings call transcript.
+    user_prompt = f"""
+        Extract the most important factual claims from the following earnings call transcript.
 
-Rules:
-1. Each claim must be specific and verifiable.
-2. Avoid vague or generic statements.
-3. Keep each claim concise.
-4. Include speaker when identifiable.
-5. Return ONLY valid JSON.
+        Rules:
+        1. Select at most 8 claims.
+        2. Each claim must be specific, concise, and verifiable.
+        3. Prioritize financially material claims:
+        - revenue
+        - net income
+        - EPS
+        - gross margin
+        - operating expenses
+        - guidance
+        - segment performance (e.g. iPhone, Services)
+        - major growth/decline percentages
+        4. Avoid vague, generic, promotional, or repetitive statements.
+        5. Include speaker when identifiable.
+        6. Return ONLY valid JSON.
+        7. Do not include markdown fences.
+        8. If multiple claims say nearly the same thing, keep only one.
 
-Output format:
-[
-  {{
-    "claim_id": 1,
-    "claim": "Services revenue increased year-over-year.",
-    "speaker": "CEO"
-  }}
-]
+        Output format:
+        [
+        {{
+            "claim_id": 1,
+            "claim": "Revenue was $143.8 billion, up 16% year-over-year.",
+            "speaker": "Kevan Parekh"
+        }}
+        ]
 
-Transcript:
-{transcript_text}
-"""
+        Transcript:
+        {transcript_text}
+        """
 
     completion = client.chat.completions.create( #실제 요청 보내는 부분
         model=MODEL_NAME,
