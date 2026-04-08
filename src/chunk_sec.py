@@ -2,13 +2,30 @@
 import json
 import re
 from pathlib import Path
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+CHUNK_SIZE = 1800
+CHUNK_OVERLAP = 150
+
+
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=CHUNK_SIZE,
+    chunk_overlap=CHUNK_OVERLAP,
+    separators=["\n\n", "\n", ". ", " ", ""]
+)
+
+def chunk_text(text: str):
+    text = text.strip()
+    if not text:
+        return []
+    return splitter.split_text(text)
 
 RAW_SEC_TEXT_DIR = Path("data/raw/sec/text")
 OUTPUT_FILE = Path("data/processed/sec_chunks.json")
 OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 CHUNK_SIZE = 1800
-CHUNK_OVERLAP = 100
+CHUNK_OVERLAP = 150
 
 
 def load_text(file_path: Path) -> str:
@@ -42,31 +59,12 @@ def parse_sec_filename(file_path: Path) -> dict:
     }
 
 
-def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP):
-    """
-    문자 단위 sliding window chunking
-    """
+
+def chunk_text(text: str):
     text = text.strip()
     if not text:
         return []
-
-    chunks = []
-    start = 0
-    text_length = len(text)
-
-    while start < text_length:
-        end = min(start + chunk_size, text_length)
-        chunk = text[start:end].strip()
-
-        if chunk:
-            chunks.append(chunk)
-
-        if end == text_length:
-            break
-
-        start += chunk_size - overlap
-
-    return chunks
+    return splitter.split_text(text)
 
 
 def build_sec_chunks():
