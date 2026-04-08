@@ -1,17 +1,28 @@
 # src/pipeline.py
+from pathlib import Path
+
 from claim_extraction import load_transcript, extract_claims_with_llama
 from retrieve import retrieve_top_chunks_for_claim
 from query_parser import parse_user_query
 from event_resolver import resolve_transcript
 from report_generator import generate_report
+from sec_fetcher import fetch_recent_sec_filings_for_ticker
+
+SEC_TEXT_DIR = Path("data/raw/sec/text")
+
+TICKER_MAP = {
+    "apple": "AAPL",
+    "tesla": "TSLA",
+    "microsoft": "MSFT",
+    "amazon": "AMZN",
+    "meta": "META",
+    "google": "GOOGL",
+    "alphabet": "GOOGL",
+    "nvidia": "NVDA",
+}
 
 
 def select_relevant_claims(claims, user_query, top_n=3):
-    """
-    임시 버전:
-    user_query 단어와 겹치는 claim 우선 선택
-    나중에는 embedding 기반 claim retrieval로 개선 가능
-    """
     query_words = set(user_query.lower().split())
 
     scored = []
@@ -29,6 +40,23 @@ def select_relevant_claims(claims, user_query, top_n=3):
     return selected
 
 
+def ensure_sec_filings(company: str, ticker: str, limit: int = 3):
+    existing_files = list(SEC_TEXT_DIR.glob(f"{ticker.lower()}_*.txt"))
+
+    if existing_files:
+        print(f"[INFO] Reusing existing SEC txt files for {ticker}: {len(existing_files)} found")
+        return existing_files
+
+    print(f"[INFO] No local SEC txt files found for {ticker}. Fetching from SEC...")
+    results = fetch_recent_sec_filings_for_ticker(
+        ticker=ticker,
+        form_types=["10-Q", "10-K", "8-K"],
+        limit=limit,
+    )
+
+    return [Path(item["clean_text_path"]) for item in results]
+
+
 def main():
     user_query = input("질문을 입력하세요: ").strip()
 
@@ -39,7 +67,7 @@ def main():
     query_info = parse_user_query(user_query)
 
     if not query_info["company"]:
-        print("회사명을 인식하지 못했습니다. 예: apple, tesla")
+        print("회사명을 인식하지 못했습니다.")
         return
 
     event_info = resolve_transcript(query_info)
@@ -47,7 +75,20 @@ def main():
         print("해당 조건에 맞는 transcript를 찾을 수 없습니다.")
         return
 
-    print(f"\n[INFO] Selected transcript: {event_info['path']}")
+    company = event_info["company"]
+    ticker = TICKER_MAP.get(company)
+
+    sec_files = []
+    if ticker:
+        sec_files = ensure_sec_filings(company, ticker, limit=3)
+        if sec_files:
+            print(f"[INFO] SEC txt ready: {len(sec_files)} files")
+        else:
+            print("[WARN] No usable SEC txt files found. Continue with transcript only.")
+    else:
+        print(f"[WARN] No ticker mapping found for {company}. Continue with transcript only.")
+
+    print(f"[INFO] Selected transcript: {event_info['path']}")
 
     transcript_text = load_transcript(event_info["path"])
     claims = extract_claims_with_llama(transcript_text)

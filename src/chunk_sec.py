@@ -1,43 +1,122 @@
-from pathlib import Path
+# src/chunk_sec.py
 import json
+import re
+from pathlib import Path
 
-INPUT_DIR = Path("data/raw/sec")
-OUTPUT_DIR = Path("data/processed")
-OUTPUT_DIR.mkdir(exist_ok=True)
+RAW_SEC_TEXT_DIR = Path("data/raw/sec/text")
+OUTPUT_FILE = Path("data/processed/sec_chunks.json")
+OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
 
-CHUNK_SIZE = 300  # 대충 300~500 토큰 느낌
+CHUNK_SIZE = 1800
+CHUNK_OVERLAP = 100
 
 
-def chunk_text(text, chunk_size=300):
-    words = text.split()
+def load_text(file_path: Path) -> str:
+    with open(file_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def parse_sec_filename(file_path: Path) -> dict:
+    """
+    파일명 예시:
+    aapl_2026-01-30_10-Q_clean.txt
+    """
+    stem = file_path.stem  # aapl_2026-01-30_10-Q_clean
+
+    match = re.match(r"^([a-zA-Z0-9]+)_(\d{4}-\d{2}-\d{2})_([A-Za-z0-9\-]+)_clean$", stem)
+    if not match:
+        return {
+            "ticker": None,
+            "filing_date": None,
+            "form_type": None,
+            "source_file": file_path.name,
+        }
+
+    ticker, filing_date, form_type = match.groups()
+
+    return {
+        "ticker": ticker.upper(),
+        "filing_date": filing_date,
+        "form_type": form_type.upper(),
+        "source_file": file_path.name,
+    }
+
+
+def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP):
+    """
+    문자 단위 sliding window chunking
+    """
+    text = text.strip()
+    if not text:
+        return []
+
     chunks = []
+    start = 0
+    text_length = len(text)
 
-    for i in range(0, len(words), chunk_size):
-        chunk = " ".join(words[i:i + chunk_size])
-        chunks.append(chunk)
+    while start < text_length:
+        end = min(start + chunk_size, text_length)
+        chunk = text[start:end].strip()
+
+        if chunk:
+            chunks.append(chunk)
+
+        if end == text_length:
+            break
+
+        start += chunk_size - overlap
 
     return chunks
 
 
+def build_sec_chunks():
+    all_chunks = []
+    txt_files = sorted(RAW_SEC_TEXT_DIR.glob("*.txt"))
+
+    if not txt_files:
+        print(f"No txt files found in {RAW_SEC_TEXT_DIR}")
+        return []
+
+    chunk_id = 1
+
+    for file_path in txt_files:
+        metadata = parse_sec_filename(file_path)
+        text = load_text(file_path)
+        chunks = chunk_text(text)
+
+        print(f"[INFO] {file_path.name}: {len(chunks)} chunks")
+
+        for i, chunk in enumerate(chunks, start=1):
+            all_chunks.append(
+                {
+                    "chunk_id": chunk_id,
+                    "text": chunk,
+                    "ticker": metadata["ticker"],
+                    "filing_date": metadata["filing_date"],
+                    "form_type": metadata["form_type"],
+                    "source_file": metadata["source_file"],
+                    "chunk_index": i,
+                }
+            )
+            chunk_id += 1
+
+    return all_chunks
+
+
+def save_chunks(chunks, output_path: Path):
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(chunks, f, ensure_ascii=False, indent=2)
+
+
 def main():
-    file_path = INPUT_DIR / "apple_10q.txt"
+    chunks = build_sec_chunks()
 
-    with open(file_path, "r", encoding="utf-8") as f:
-        text = f.read()
+    if not chunks:
+        print("No chunks created.")
+        return
 
-    chunks = chunk_text(text)
-
-    results = []
-    for i, chunk in enumerate(chunks):
-        results.append({
-            "chunk_id": i,
-            "text": chunk
-        })
-
-    with open(OUTPUT_DIR / "sec_chunks.json", "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=2, ensure_ascii=False)
-
-    print(f"Saved {len(results)} chunks")
+    save_chunks(chunks, OUTPUT_FILE)
+    print(f"Saved {len(chunks)} chunks to {OUTPUT_FILE}")
 
 
 if __name__ == "__main__":
