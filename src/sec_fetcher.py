@@ -1,22 +1,28 @@
 # src/sec_fetcher.py
-import json
+import re
 import time
 from pathlib import Path
 from typing import Optional, List, Dict
 
 import requests
 
+
 BASE_DATA_URL = "https://data.sec.gov"
 BASE_ARCHIVES_URL = "https://www.sec.gov/Archives"
 
-RAW_SEC_DIR = Path("data/raw/sec")
-RAW_SEC_DIR.mkdir(parents=True, exist_ok=True)
+RAW_SEC_TEXT_DIR = Path("data/raw/sec/text")
+RAW_SEC_TEXT_DIR.mkdir(parents=True, exist_ok=True)
 
-# SEC는 user-agent 명시를 권장/요구
-HEADERS = {
-    "User-Agent": "earnings-rag-project munjinseo@example.com",
+HEADERS_DATA = {
+    "User-Agent": "earnings-rag-project your_email@example.com",
     "Accept-Encoding": "gzip, deflate",
     "Host": "data.sec.gov",
+}
+
+HEADERS_WWW = {
+    "User-Agent": "earnings-rag-project your_email@example.com",
+    "Accept-Encoding": "gzip, deflate",
+    "Host": "www.sec.gov",
 }
 
 
@@ -25,20 +31,10 @@ def zero_pad_cik(cik: str | int) -> str:
 
 
 def get_company_tickers() -> list[dict]:
-    """
-    SEC 제공 ticker/CIK/company name 매핑 파일 다운로드
-    """
     url = "https://www.sec.gov/files/company_tickers.json"
-    headers = {
-        "User-Agent": HEADERS["User-Agent"],
-        "Accept-Encoding": "gzip, deflate",
-        "Host": "www.sec.gov",
-    }
-    resp = requests.get(url, headers=headers, timeout=30)
+    resp = requests.get(url, headers=HEADERS_WWW, timeout=30)
     resp.raise_for_status()
     data = resp.json()
-
-    # SEC json은 {"0": {...}, "1": {...}} 형태
     return list(data.values())
 
 
@@ -56,15 +52,12 @@ def find_cik_by_ticker(ticker: str) -> Optional[str]:
 def get_submissions_json(cik: str) -> dict:
     cik = zero_pad_cik(cik)
     url = f"{BASE_DATA_URL}/submissions/CIK{cik}.json"
-    resp = requests.get(url, headers=HEADERS, timeout=30)
+    resp = requests.get(url, headers=HEADERS_DATA, timeout=30)
     resp.raise_for_status()
     return resp.json()
 
 
 def get_recent_filings(submissions_json: dict) -> List[Dict]:
-    """
-    submissions JSON의 recent filings를 row 형태로 변환
-    """
     recent = submissions_json.get("filings", {}).get("recent", {})
 
     forms = recent.get("form", [])
@@ -108,33 +101,123 @@ def filter_filings(
     return results[:limit]
 
 
-def build_filing_document_url(cik: str, accession_number: str, primary_document: str) -> str:
-    """
-    filing 원문 문서 URL 생성
-    예:
-    https://www.sec.gov/Archives/edgar/data/{CIK no leading zeros}/{accession no dashes}/{primary_document}
-    """
+def build_filing_folder_url(cik: str, accession_number: str) -> str:
     cik_no_zeros = str(int(cik))
     accession_no_dashes = accession_number.replace("-", "")
-    return f"{BASE_ARCHIVES_URL}/edgar/data/{cik_no_zeros}/{accession_no_dashes}/{primary_document}"
+    return f"{BASE_ARCHIVES_URL}/edgar/data/{cik_no_zeros}/{accession_no_dashes}"
 
 
-def download_filing_text(url: str) -> str:
-    headers = {
-        "User-Agent": HEADERS["User-Agent"],
-        "Accept-Encoding": "gzip, deflate",
-        "Host": "www.sec.gov",
-    }
-    resp = requests.get(url, headers=headers, timeout=30)
+def build_filing_document_url(cik: str, accession_number: str, filename: str) -> str:
+    folder_url = build_filing_folder_url(cik, accession_number)
+    return f"{folder_url}/{filename}"
+
+
+def fetch_archive_index_json(cik: str, accession_number: str) -> Optional[dict]:
+    folder_url = build_filing_folder_url(cik, accession_number)
+    index_url = f"{folder_url}/index.json"
+
+    resp = requests.get(index_url, headers=HEADERS_WWW, timeout=30)
+    if resp.status_code != 200:
+        return None
+
+    return resp.json()
+
+
+def get_archive_items(index_json: dict) -> List[dict]:
+    return index_json.get("directory", {}).get("item", [])
+
+
+def is_probably_useful_txt(filename: str) -> bool:
+    name = filename.lower()
+
+    if not name.endswith(".txt"):
+        return False
+
+    bad_keywords = [
+        ".xsd",
+        ".xml",
+        "_cal",
+        "_def",
+        "_lab",
+        "_pre",
+        "_sch",
+        "schema",
+        "def.xml",
+        "lab.xml",
+        "pre.xml",
+        "cal.xml",
+    ]
+    if any(bad in name for bad in bad_keywords):
+        return False
+
+    return True
+
+
+def score_txt_candidate(filename: str, primary_document: str) -> int:
+    name = filename.lower()
+    primary = primary_document.lower()
+
+    score = 0
+
+    if name == primary and name.endswith(".txt"):
+        score += 100
+
+    primary_base = primary.rsplit(".", 1)[0]
+    name_base = name.rsplit(".", 1)[0]
+
+    if name.endswith(".txt") and name_base == primary_base:
+        score += 80
+
+    if name.endswith(".txt"):
+        score += 30
+
+    if "complete" in name or "submission" in name:
+        score -= 10
+
+    if primary_base in name:
+        score += 10
+
+    return score
+
+
+def choose_best_txt_filename(filing: Dict, archive_items: List[dict]) -> Optional[str]:
+    primary_document = filing["primary_document"]
+
+    txt_candidates = []
+    for item in archive_items:
+        name = item.get("name", "")
+        if is_probably_useful_txt(name):
+            txt_candidates.append(name)
+
+    if not txt_candidates:
+        return None
+
+    ranked = sorted(
+        txt_candidates,
+        key=lambda x: score_txt_candidate(x, primary_document),
+        reverse=True,
+    )
+    return ranked[0]
+
+
+def download_text(url: str) -> str:
+    resp = requests.get(url, headers=HEADERS_WWW, timeout=30)
     resp.raise_for_status()
     return resp.text
 
 
-def save_filing(company: str, filing: Dict, text: str) -> Path:
+def plain_text_cleanup(text: str) -> str:
+    text = re.sub(r"\r", "\n", text)
+    text = re.sub(r"\n\s*\n\s*\n+", "\n\n", text)
+    text = re.sub(r"[ \t]+", " ", text)
+    return text.strip()
+
+
+def save_clean_text(company: str, filing: Dict, text: str, suffix_name: str) -> Path:
     filing_date = filing["filing_date"]
     form = filing["form"].replace("/", "-")
-    filename = f"{company.lower()}_{filing_date}_{form}.txt"
-    out_path = RAW_SEC_DIR / filename
+    filename = f"{company.lower()}_{filing_date}_{form}_{suffix_name}.txt"
+    out_path = RAW_SEC_TEXT_DIR / filename
 
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(text)
@@ -142,61 +225,81 @@ def save_filing(company: str, filing: Dict, text: str) -> Path:
     return out_path
 
 
+def fetch_one_filing_txt_only(cik: str, ticker: str, filing: Dict) -> Optional[Dict]:
+    accession_number = filing["accession_number"]
+
+    index_json = fetch_archive_index_json(cik, accession_number)
+    archive_items = get_archive_items(index_json) if index_json else []
+
+    chosen_filename = choose_best_txt_filename(filing, archive_items)
+
+    if not chosen_filename:
+        print(
+            f"[SKIP] {filing['form']} {filing['filing_date']} | "
+            f"No usable .txt source found."
+        )
+        return None
+
+    source_url = build_filing_document_url(cik, accession_number, chosen_filename)
+
+    print(
+        f"[INFO] {filing['form']} {filing['filing_date']} | "
+        f"txt source found: {chosen_filename}"
+    )
+
+    raw_text = download_text(source_url)
+    clean_text = plain_text_cleanup(raw_text)
+    text_path = save_clean_text(ticker, filing, clean_text, "clean")
+
+    return {
+        "ticker": ticker.upper(),
+        "form": filing["form"],
+        "filing_date": filing["filing_date"],
+        "accession_number": accession_number,
+        "source_filename": chosen_filename,
+        "source_url": source_url,
+        "clean_text_path": str(text_path),
+    }
+
+
 def fetch_recent_sec_filings_for_ticker(
     ticker: str,
     form_types: Optional[List[str]] = None,
     limit: int = 3,
     sleep_sec: float = 0.2,
-):
+) -> List[Dict]:
     cik = find_cik_by_ticker(ticker)
     if not cik:
         raise ValueError(f"CIK not found for ticker: {ticker}")
 
     submissions = get_submissions_json(cik)
-    company_name = submissions.get("name", ticker.upper())
-
     filings = get_recent_filings(submissions)
     selected = filter_filings(filings, form_types=form_types, limit=limit)
 
-    saved_files = []
-
+    results = []
     for filing in selected:
-        doc_url = build_filing_document_url(
-            cik=cik,
-            accession_number=filing["accession_number"],
-            primary_document=filing["primary_document"],
-        )
-        print(f"[INFO] Downloading {filing['form']} {filing['filing_date']} -> {doc_url}")
-
-        text = download_filing_text(doc_url)
-        path = save_filing(ticker, filing, text)
-
-        saved_files.append(
-            {
-                "company_name": company_name,
-                "ticker": ticker.upper(),
-                "cik": cik,
-                "form": filing["form"],
-                "filing_date": filing["filing_date"],
-                "path": str(path),
-                "url": doc_url,
-            }
-        )
-
+        item = fetch_one_filing_txt_only(cik, ticker, filing)
+        if item is not None:
+            results.append(item)
         time.sleep(sleep_sec)
 
-    return saved_files
+    return results
 
 
 def main():
     ticker = input("Ticker를 입력하세요 (예: AAPL): ").strip().upper()
+
     results = fetch_recent_sec_filings_for_ticker(
         ticker=ticker,
         form_types=["10-Q", "10-K", "8-K"],
         limit=3,
     )
 
-    print("\n=== Saved Filings ===")
+    print("\n=== Saved TXT Filings ===")
+    if not results:
+        print("No usable txt filings found.")
+        return
+
     for item in results:
         print(item)
 
