@@ -1,24 +1,43 @@
 # src/pipeline.py
 from pathlib import Path
 
-from claim_extraction import load_transcript, extract_claims_with_llama
+from claim_extraction import extract_claims_with_llama
 from retrieve import retrieve_top_chunks_for_claim
 from query_parser import parse_user_query
 from event_resolver import resolve_transcript
 from report_generator import generate_report
 from sec_fetcher import fetch_recent_sec_filings_for_ticker
+from transcript_loader import load_transcript_from_json
 
 SEC_TEXT_DIR = Path("data/raw/sec/text")
 
 TICKER_MAP = {
     "apple": "AAPL",
+    "aapl": "AAPL",
     "tesla": "TSLA",
+    "tsla": "TSLA",
     "microsoft": "MSFT",
+    "msft": "MSFT",
     "amazon": "AMZN",
+    "amzn": "AMZN",
     "meta": "META",
+    "fb": "META",
+    "meta platforms": "META",
     "google": "GOOGL",
     "alphabet": "GOOGL",
+    "goog": "GOOGL",
+    "googl": "GOOGL",
     "nvidia": "NVDA",
+    "nvda": "NVDA",
+    "amd": "AMD",
+    "advanced micro devices": "AMD",
+    "intc": "INTC",
+    "intel": "INTC",
+    "mu": "MU",
+    "micron": "MU",
+    "csco": "CSCO",
+    "cisco": "CSCO",
+    "asml": "ASML",
 }
 
 
@@ -65,6 +84,7 @@ def main():
         return
 
     query_info = parse_user_query(user_query)
+    print("query_info:", query_info)
 
     if not query_info["company"]:
         print("회사명을 인식하지 못했습니다.")
@@ -76,7 +96,10 @@ def main():
         return
 
     company = event_info["company"]
-    ticker = TICKER_MAP.get(company)
+    # 우선 event_resolver가 반환한 ticker 사용, 없으면 매핑 테이블로 보완
+    ticker = event_info.get("ticker") or TICKER_MAP.get(company) or TICKER_MAP.get(
+        company.upper()
+    )
 
     sec_files = []
     if ticker:
@@ -88,9 +111,11 @@ def main():
     else:
         print(f"[WARN] No ticker mapping found for {company}. Continue with transcript only.")
 
-    print(f"[INFO] Selected transcript: {event_info['path']}")
+    print(
+        f"[INFO] Selected transcript: call_id={event_info.get('call_id')} date={event_info.get('date')}"
+    )
 
-    transcript_text = load_transcript(event_info["path"])
+    transcript_text = load_transcript_from_json(event_info["call_id"])
     claims = extract_claims_with_llama(transcript_text)
 
     if not claims:

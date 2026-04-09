@@ -5,7 +5,9 @@ def generate_report(user_query, event_info, analyzed_claims):
     lines.append(f"User Query: {user_query}")
     lines.append(f"Company: {event_info['company']}")
     lines.append(f"Quarter: {event_info['quarter']}")
-    lines.append(f"Transcript: {event_info['path']}")
+    lines.append(
+        f"Transcript: call_id={event_info.get('call_id')} date={event_info.get('date')}"
+    )
     lines.append("")
 
     for idx, item in enumerate(analyzed_claims, start=1):
