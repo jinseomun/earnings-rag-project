@@ -1,6 +1,13 @@
 import os
+
+# 환경변수는 import 전에
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"   # macOS Accelerate용
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
 import json
 import pickle
@@ -8,6 +15,7 @@ from pathlib import Path
 
 import faiss
 import numpy as np
+import torch
 from sentence_transformers import SentenceTransformer
 
 INPUT_PATH = Path("data/processed/earnings_call_chunks_train.json")
@@ -16,7 +24,7 @@ INDEX_PATH = INDEX_DIR / "index.faiss"
 META_PATH = INDEX_DIR / "metadata.pkl"
 
 MODEL_NAME = "intfloat/e5-base-v2"
-BATCH_SIZE = 16  # CPU면 8~32 정도 추천
+BATCH_SIZE = 32
 
 
 def load_json(path: Path):
@@ -29,8 +37,18 @@ def batch_iter(lst, batch_size):
         yield lst[i:i + batch_size]
 
 
+def clean_text(text: str) -> str:
+    text = text.replace("\x00", " ")
+    text = " ".join(text.split())
+    return text[:1500]   # 너무 긴 텍스트 방지
+
+
 def main():
     INDEX_DIR.mkdir(parents=True, exist_ok=True)
+
+    # torch 쪽도 스레드 제한
+    torch.set_num_threads(1)
+    torch.set_num_interop_threads(1)
 
     print(f"Loading chunks from: {INPUT_PATH}")
     rows = load_json(INPUT_PATH)
@@ -38,8 +56,9 @@ def main():
 
     print("Loading SentenceTransformer on CPU...")
     model = SentenceTransformer(MODEL_NAME, device="cpu")
+    model.max_seq_length = 256
 
-    texts = [f"passage: {row['page_content'].strip()}" for row in rows]
+    texts = [f"passage: {clean_text(row['page_content'])}" for row in rows]
 
     all_embeddings = []
     for i, batch_texts in enumerate(batch_iter(texts, BATCH_SIZE)):
@@ -60,7 +79,7 @@ def main():
     print("Embeddings shape:", embeddings.shape)
 
     dim = embeddings.shape[1]
-    index = faiss.IndexFlatIP(dim)  # cosine similarity용
+    index = faiss.IndexFlatIP(dim)
     index.add(embeddings)
 
     faiss.write_index(index, str(INDEX_PATH))

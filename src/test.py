@@ -1,15 +1,11 @@
-# test_embed_cpu.py
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
 
 from sentence_transformers import SentenceTransformer
 
-model = SentenceTransformer("intfloat/e5-small-v2", device="cpu")
-vec = model.encode(
-    ["passage: hello world"],
-    batch_size=1,
-    normalize_embeddings=True,
-    convert_to_numpy=True,
-    show_progress_bar=False,
-)
-print(vec.shape)
+model = SentenceTransformer("intfloat/e5-base-v2", device="cpu")
+texts = ["passage: Apple reported strong revenue growth."]
+emb = model.encode(texts, convert_to_numpy=True, normalize_embeddings=True)
+print(emb.shape)
