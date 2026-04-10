@@ -96,7 +96,6 @@ def main():
         return
 
     company = event_info["company"]
-    # 우선 event_resolver가 반환한 ticker 사용, 없으면 매핑 테이블로 보완
     ticker = event_info.get("ticker") or TICKER_MAP.get(company) or TICKER_MAP.get(
         company.upper()
     )
@@ -126,7 +125,17 @@ def main():
 
     analyzed_claims = []
     for claim in relevant_claims:
-        retrieved = retrieve_top_chunks_for_claim(claim["claim"], top_k=2)
+        retrieved = retrieve_top_chunks_for_claim(claim["claim"], final_top_k=2)
+
+        print("\n[DEBUG] CLAIM:", claim["claim"])
+        for i, r in enumerate(retrieved, start=1):
+            print(f"  [Evidence {i}]")
+            print("   chunk_id:", r.get("chunk_id"))
+            print("   retrieval_score:", r.get("retrieval_score"))
+            print("   rerank_score:", r.get("rerank_score"))
+            print("   text:", r.get("text", "")[:200])
+            print("-" * 60)
+
         analyzed_claims.append(
             {
                 "claim": claim,
