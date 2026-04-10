@@ -1,6 +1,7 @@
 # src/sec_fetcher.py
 import re
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict
 from bs4 import BeautifulSoup
@@ -58,16 +59,20 @@ def get_submissions_json(cik: str) -> dict:
     return resp.json()
 
 
-def get_recent_filings(submissions_json: dict) -> List[Dict]:
-    recent = submissions_json.get("filings", {}).get("recent", {})
+def fetch_json(url: str, use_data_headers: bool = True) -> dict:
+    headers = HEADERS_DATA if use_data_headers else HEADERS_WWW
+    resp = requests.get(url, headers=headers, timeout=30)
+    resp.raise_for_status()
+    return resp.json()
 
-    forms = recent.get("form", [])
-    accession_numbers = recent.get("accessionNumber", [])
-    filing_dates = recent.get("filingDate", [])
-    primary_documents = recent.get("primaryDocument", [])
-    primary_doc_descriptions = recent.get("primaryDocDescription", [])
 
-    filings = []
+def parse_filings_columnar(block: dict) -> List[Dict]:
+    forms = block.get("form", [])
+    accession_numbers = block.get("accessionNumber", [])
+    filing_dates = block.get("filingDate", [])
+    primary_documents = block.get("primaryDocument", [])
+    primary_doc_descriptions = block.get("primaryDocDescription", [])
+
     n = min(
         len(forms),
         len(accession_numbers),
@@ -76,6 +81,7 @@ def get_recent_filings(submissions_json: dict) -> List[Dict]:
         len(primary_doc_descriptions),
     )
 
+    filings = []
     for i in range(n):
         filings.append(
             {
@@ -86,20 +92,84 @@ def get_recent_filings(submissions_json: dict) -> List[Dict]:
                 "primary_doc_description": primary_doc_descriptions[i],
             }
         )
-
     return filings
 
 
-def filter_filings(
+def get_all_filings(submissions_json: dict) -> List[Dict]:
+    """
+    recent + older filings JSON files까지 모두 합쳐서 반환
+    """
+    all_filings = []
+
+    # 1) recent
+    recent_block = submissions_json.get("filings", {}).get("recent", {})
+    all_filings.extend(parse_filings_columnar(recent_block))
+
+    # 2) older files
+    older_files = submissions_json.get("filings", {}).get("files", [])
+    for file_info in older_files:
+        name = file_info.get("name")
+        if not name:
+            continue
+
+        # 보통 submissions/CIKxxxx-submissions-001.json 같은 형태
+        if name.startswith("/"):
+            url = f"{BASE_DATA_URL}{name}"
+        else:
+            url = f"{BASE_DATA_URL}/submissions/{name}"
+
+        try:
+            older_json = fetch_json(url, use_data_headers=True)
+            all_filings.extend(parse_filings_columnar(older_json))
+        except Exception as e:
+            print(f"[WARN] Failed to load older submissions file: {url} | {e}")
+
+        time.sleep(0.2)
+
+    # 중복 제거
+    dedup = {}
+    for f in all_filings:
+        dedup[f["accession_number"]] = f
+
+    return list(dedup.values())
+
+
+def filter_filings_by_date(
     filings: List[Dict],
+    target_date: str,
     form_types: Optional[List[str]] = None,
     limit: int = 10,
+    prefer_on_or_before: bool = True,
 ) -> List[Dict]:
+    """
+    target_date와 가까운 filing을 고르되,
+    기본적으로는 target_date 이전(또는 당일) filings를 우선
+    """
     if form_types is None:
         form_types = ["10-Q", "10-K", "8-K"]
 
-    results = [f for f in filings if f["form"] in form_types]
-    return results[:limit]
+    target_dt = datetime.strptime(target_date, "%Y-%m-%d").date()
+
+    candidates = []
+    for f in filings:
+        if f["form"] not in form_types:
+            continue
+        try:
+            filing_dt = datetime.strptime(f["filing_date"], "%Y-%m-%d").date()
+        except Exception:
+            continue
+
+        delta_days = (target_dt - filing_dt).days
+
+        # 기본은 target_date 이전/당일 filings만
+        if prefer_on_or_before and delta_days < 0:
+            continue
+
+        candidates.append((abs(delta_days), delta_days, filing_dt, f))
+
+    # 가까운 날짜 순, 같은 거리면 더 최근 filing 우선
+    candidates.sort(key=lambda x: (x[0], x[1]))
+    return [item[3] for item in candidates[:limit]]
 
 
 def build_filing_folder_url(cik: str, accession_number: str) -> str:
@@ -208,11 +278,6 @@ def download_text(url: str) -> str:
 
 
 def clean_sec_filing_text(raw_text: str) -> str:
-    """
-    SEC raw submission txt -> 분석용 clean text
-    """
-
-    # 1) SEC HEADER 제거
     raw_text = re.sub(
         r"<SEC-HEADER>.*?</SEC-HEADER>",
         " ",
@@ -220,7 +285,6 @@ def clean_sec_filing_text(raw_text: str) -> str:
         flags=re.DOTALL | re.IGNORECASE,
     )
 
-    # 2) uuencoded graphic/image block 제거
     raw_text = re.sub(
         r"begin\s+\d{3}\s+.*?\n.*?\nend",
         " ",
@@ -228,7 +292,6 @@ def clean_sec_filing_text(raw_text: str) -> str:
         flags=re.DOTALL | re.IGNORECASE,
     )
 
-    # 3) TEXT 블록만 추출
     text_match = re.search(
         r"<TEXT>(.*)</TEXT>",
         raw_text,
@@ -237,21 +300,15 @@ def clean_sec_filing_text(raw_text: str) -> str:
     if text_match:
         raw_text = text_match.group(1)
 
-    # 4) XBRL wrapper 제거
     raw_text = re.sub(r"</?XBRL[^>]*>", " ", raw_text, flags=re.IGNORECASE)
 
-    # 5) HTML/XBRL 파싱
     soup = BeautifulSoup(raw_text, "lxml")
-
     for tag in soup(["script", "style"]):
         tag.decompose()
 
     text = soup.get_text(separator="\n")
-
-    # 6) 남은 SGML/HTML 태그 제거
     text = re.sub(r"<[^>]+>", " ", text)
 
-    # 7) 줄 단위 잡음 제거
     cleaned_lines = []
     noisy_patterns = [
         "xmlns:",
@@ -275,7 +332,6 @@ def clean_sec_filing_text(raw_text: str) -> str:
 
         lower = line.lower()
 
-        # 메타/헤더성 줄 제거
         if lower.startswith("accession number:"):
             continue
         if lower.startswith("conformed submission type:"):
@@ -291,28 +347,22 @@ def clean_sec_filing_text(raw_text: str) -> str:
         if lower.startswith("standard industrial classification:"):
             continue
 
-        # XBRL namespace/기술 문자열 위주 줄 제거
         if sum(p in lower for p in noisy_patterns) >= 2:
             continue
 
-        # 너무 짧고 의미 없는 값들 제거
         if len(line) <= 3 and lower in {"true", "false", "—"}:
             continue
 
         cleaned_lines.append(line)
 
     text = "\n".join(cleaned_lines)
-
-    # 8) Exhibit 구간 제거 시도
-    # 8-K에서 EX-10.1 같은 첨부문서가 붙는 경우가 많음
     text = re.split(r"\nEX-\d+(\.\d+)?\n", text, maxsplit=1, flags=re.IGNORECASE)[0]
-
-    # 9) 공백 정리
     text = re.sub(r"\r", "\n", text)
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n\s*\n\s*\n+", "\n\n", text)
 
     return text.strip()
+
 
 def save_clean_text(company: str, filing: Dict, text: str, suffix_name: str) -> Path:
     filing_date = filing["filing_date"]
@@ -363,19 +413,34 @@ def fetch_one_filing_txt_only(cik: str, ticker: str, filing: Dict) -> Optional[D
     }
 
 
-def fetch_recent_sec_filings_for_ticker(
+def fetch_sec_filings_for_ticker_near_date(
     ticker: str,
+    target_date: str,
     form_types: Optional[List[str]] = None,
     limit: int = 3,
     sleep_sec: float = 0.2,
 ) -> List[Dict]:
+    """
+    target_date 근처(기본적으로 target_date 이전/당일)의 filings를 가져옴
+    """
     cik = find_cik_by_ticker(ticker)
     if not cik:
         raise ValueError(f"CIK not found for ticker: {ticker}")
 
     submissions = get_submissions_json(cik)
-    filings = get_recent_filings(submissions)
-    selected = filter_filings(filings, form_types=form_types, limit=limit)
+    all_filings = get_all_filings(submissions)
+
+    selected = filter_filings_by_date(
+        all_filings,
+        target_date=target_date,
+        form_types=form_types or ["10-Q", "10-K", "8-K"],
+        limit=limit,
+        prefer_on_or_before=True,
+    )
+
+    print(f"[INFO] Selected filings near {target_date} for {ticker}:")
+    for f in selected:
+        print(f"  - {f['form']} {f['filing_date']} {f['accession_number']}")
 
     results = []
     for filing in selected:
@@ -389,9 +454,11 @@ def fetch_recent_sec_filings_for_ticker(
 
 def main():
     ticker = input("Ticker를 입력하세요 (예: AAPL): ").strip().upper()
+    target_date = input("기준 날짜를 입력하세요 (예: 2016-07-26): ").strip()
 
-    results = fetch_recent_sec_filings_for_ticker(
+    results = fetch_sec_filings_for_ticker_near_date(
         ticker=ticker,
+        target_date=target_date,
         form_types=["10-Q", "10-K", "8-K"],
         limit=3,
     )

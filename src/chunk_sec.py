@@ -106,6 +106,37 @@ def save_chunks(chunks, output_path: Path):
         json.dump(chunks, f, ensure_ascii=False, indent=2)
 
 
+def build_sec_chunks_from_txt_files(txt_paths, output_path: Path):
+    all_chunks = []
+    chunk_id = 1
+
+    for file_path in sorted(txt_paths):
+        file_path = Path(file_path)
+        metadata = parse_sec_filename(file_path)
+        text = load_text(file_path)
+        chunks = chunk_text(text)
+
+        print(f"[INFO] {file_path.name}: {len(chunks)} chunks")
+
+        for i, chunk in enumerate(chunks, start=1):
+            all_chunks.append(
+                {
+                    "chunk_id": chunk_id,
+                    "text": chunk,
+                    "ticker": metadata["ticker"],
+                    "filing_date": metadata["filing_date"],
+                    "form_type": metadata["form_type"],
+                    "source_file": metadata["source_file"],
+                    "chunk_index": i,
+                }
+            )
+            chunk_id += 1
+
+    save_chunks(all_chunks, output_path)
+    print(f"Saved {len(all_chunks)} chunks to {output_path}")
+    return all_chunks
+
+
 def main():
     chunks = build_sec_chunks()
 

@@ -42,5 +42,38 @@ def main():
     print(f"Saved embeddings to {OUTPUT_FILE}")
 
 
+def build_sec_embeddings_from_chunks(chunks_path, output_path):
+    chunks_path = Path(chunks_path)
+    output_path = Path(output_path)
+
+    if not chunks_path.exists():
+        print(f"Input file not found: {chunks_path}")
+        return
+
+    with open(chunks_path, "r", encoding="utf-8") as f:
+        chunks = json.load(f)
+
+    if not chunks:
+        print("No chunks found in input file.")
+        return
+
+    texts = ["passage: " + chunk["text"] for chunk in chunks]
+
+    print(f"[INFO] Embedding {len(texts)} SEC chunks...")
+    embeddings = model.encode(
+        texts,
+        batch_size=32,        # 배치 사이즈 조절해서 안 터지게 함
+        show_progress_bar=True,
+    )
+
+    for i, emb in enumerate(embeddings):
+        chunks[i]["embedding"] = emb.tolist()
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(chunks, f, ensure_ascii=False, indent=2)
+
+    print(f"Saved embeddings to {output_path}")
+
+
 if __name__ == "__main__":
     main()

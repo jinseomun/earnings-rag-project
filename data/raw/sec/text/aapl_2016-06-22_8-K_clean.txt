@@ -1,0 +1,97 @@
+Form 8-K
+UNITED STATES
+SECURITIES AND EXCHANGE COMMISSION
+Washington, D.C. 20549
+FORM 8-K
+CURRENT REPORT
+Pursuant to Section 13 OR
+15(d) of The Securities Exchange Act of 1934
+June 7, 2016
+Date of Report (date of earliest event reported)
+Apple Inc.
+(Exact name of Registrant as specified in its charter)
+California
+001-36743
+94-2404110
+(State or other jurisdiction
+of incorporation)
+(Commission
+File
+Number)
+(IRS. Employer
+Identification No.)
+1 Infinite Loop
+Cupertino, California 95014
+(Address of principal
+executive offices) (Zip Code)
+(408) 996-1010
+(Registrant’s telephone number, including area code)
+Not applicable
+(Former name or former address,
+if changed since last report.)
+Check the appropriate box below if the Form 8-K filing is intended to simultaneously satisfy the filing obligation of the Registrant
+under any of the following provisions:
+¨
+Written communications pursuant to Rule 425 under the Securities Act (17 CFR 230.425)
+¨
+Soliciting material pursuant to Rule 14a-12 under the Exchange Act (17 CFR 240.14a-12)
+¨
+Pre-commencement communications pursuant to Rule 14d-2(b) under the Exchange Act (17 CFR 240.14d-2(b))
+¨
+Pre-commencement communications pursuant to Rule 13e-4(c) under the Exchange Act (17 CFR 240.13e-4(c))
+Item 8.01
+Other Events.
+On June 22, 2016 Apple Inc. (“Apple”) consummated the issuance and sale of $1,377,000,000 aggregate principal amount of its 4.15% Notes due 2046
+(the “Notes”), pursuant to a subscription agreement dated June 7, 2016 among Apple, and Deutsche Bank AG, Taipei Branch and KGI Securities Co. Ltd., as the managers named therein.
+The Notes are being issued pursuant to an indenture, dated as of April 29, 2013 (the “Indenture”), between Apple and The Bank of New York
+Mellon Trust Company, N.A., as trustee, together with the officer’s certificate dated as of June 22, 2016 issued pursuant to the Indenture establishing the terms of the Notes (the “Officer’s Certificate”).
+The Notes are being issued pursuant to Apple’s Registration Statement on Form S-3 filed with the Securities and Exchange Commission on April 28,
+2016 (Reg. No. 333-210983) (the “Registration Statement”).
+Interest on the Notes will be payable semi-annually on June 22 and
+December 22 of each year, beginning on December 22, 2016 and on the maturity date of June 22, 2046.
+The Notes will be Apple’s senior
+unsecured obligations and will rank equally with Apple’s other unsecured and unsubordinated debt from time to time outstanding.
+The foregoing
+description of the Notes and related agreements is qualified in its entirety by the terms of the Subscription Agreement, the Indenture and the Officer’s Certificate (including the form of the Notes). Apple is furnishing the Subscription
+Agreement and the Officer’s Certificate (including the form of the Notes) attached hereto as Exhibits 1.1 and 4.1 through 4.2, respectively, and they are incorporated herein by reference. The Indenture is filed as Exhibit 4.1 to Apple’s
+Registration Statement on Form S-3 filed with the Securities and Exchange Commission on April 29, 2013 (Reg. No. 333-188191). The computation of Apple’s ratio of earnings to fixed charges is filed as Exhibit 12.1 to the Registration Statement.
+Item 9.01
+Financial Statements and Exhibits.
+(d)
+Exhibits.
+Exhibit
+Number
+Exhibit Description
+1.1
+Subscription Agreement, dated as of June 7, 2016, among Apple Inc. and Deutsche Bank AG, Taipei Branch and KGI Securities Co. Ltd., as managers
+4.1
+Officer’s Certificate of Apple Inc., dated June 22, 2016
+4.2
+Form of Global Note (included in Exhibit 4.1)
+5.1
+Opinion of Shearman & Sterling LLP
+23.1
+Consent of Shearman & Sterling LLP (included in the opinion filed as Exhibit 5.1)
+SIGNATURE
+Pursuant to the requirements of the Securities Exchange Act of 1934, the Registrant has duly caused this report to be signed on its behalf by the undersigned hereunto
+duly authorized.
+Date: June 22, 2016
+Apple Inc.
+By:
+/s/ Gary Wipfler
+Gary Wipfler
+Vice President and Corporate Treasurer
+EXHIBIT INDEX
+Exhibit
+Number
+Exhibit Description
+1.1
+Subscription Agreement, dated as of June 7, 2016, among Apple Inc. and Deutsche Bank AG, Taipei Branch and KGI Securities Co. Ltd., as managers
+4.1
+Officer’s Certificate of Apple Inc., dated June 22, 2016
+4.2
+Form of Global Note (included in Exhibit 4.1)
+5.1
+Opinion of Shearman & Sterling LLP
+23.1
+Consent of Shearman & Sterling LLP (included in the opinion filed as Exhibit 5.1)
