@@ -1,16 +1,16 @@
 from pathlib import Path
 
-from claim_extraction import extract_claims_with_llama
-from retrieve import retrieve_top_chunks_for_claim
-from query_parser import parse_user_query
-from event_resolver import resolve_transcript
-from report_generator import generate_report
-from sec_fetcher import fetch_sec_filings_for_ticker_near_date
-from transcript_loader import load_transcript_from_json
+from claims.claim_extraction import extract_claims_with_llama
+from retrieval.retrieve import retrieve_top_chunks_for_claim
+from parsing.query_parser import parse_user_query
+from parsing.event_resolver import resolve_transcript
+from reports.report_generator import generate_report
+from sec.sec_fetcher import fetch_sec_filings_for_ticker_near_date
+from claims.transcript_loader import load_transcript_from_json
 
 # 기존 chunk / embedding 생성 함수에 맞게 import 이름 바꾸기
-from chunk_sec import build_sec_chunks_from_txt_files
-from embed_sec import build_sec_embeddings_from_chunks
+from sec.chunk_sec import build_sec_chunks_from_txt_files
+from sec.embed_sec import build_sec_embeddings_from_chunks
 
 
 SEC_TEXT_DIR = Path("data/raw/sec/text")
