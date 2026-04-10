@@ -1,0 +1,123 @@
+Form 8-K
+UNITED STATES
+SECURITIES AND EXCHANGE COMMISSION
+Washington, D.C. 20549
+FORM 8-K
+CURRENT REPORT
+Pursuant to Section 13
+OR 15(d) of The Securities Exchange Act of 1934
+March 17, 2016
+Date of Report (date of earliest event reported)
+Apple Inc.
+(Exact name of Registrant as specified in its charter)
+California
+001-36743
+94-2404110
+(State or other jurisdiction
+of incorporation)
+(Commission
+File
+Number)
+(IRS. Employer
+Identification No.)
+1 Infinite Loop
+Cupertino, California 95014
+(Address of principal
+executive offices) (Zip Code)
+(408) 996-1010
+(Registrant’s telephone number, including area code)
+Not applicable
+(Former name or former address,
+if changed since last report.)
+Check the appropriate box below if the Form 8-K filing is intended to simultaneously satisfy the filing obligation of the Registrant
+under any of the following provisions:
+¨
+Written communications pursuant to Rule 425 under the Securities Act (17 CFR 230.425)
+¨
+Soliciting material pursuant to Rule 14a-12 under the Exchange Act (17 CFR 240.14a-12)
+¨
+Pre-commencement communications pursuant to Rule 14d-2(b) under the Exchange Act (17 CFR 240.14d-2(b))
+¨
+Pre-commencement communications pursuant to Rule 13e-4(c) under the Exchange Act (17 CFR 240.13e-4(c))
+Item 8.01
+Other Events.
+On March 17,
+2016, Apple Inc. (“Apple”) entered into an underwriting agreement (the “Underwriting Agreement”) with Goldman, Sachs & Co., Deutsche Bank Securities Inc., J.P. Morgan Securities LLC and Merrill Lynch, Pierce,
+Fenner & Smith Incorporated, as representatives of the several underwriters named therein, for the issuance and sale by Apple of $750 million aggregate principal amount of its 2.250% Notes due 2021 (the “2021 Notes”), $1.25
+billion aggregate principal amount of its 3.250% Notes due 2026 (the “2026 Notes”) and $1.50 billion aggregate principal amount of its 4.650% Notes due 2046 (the “2046 Notes,” and, together with the 2021 Notes and the 2026 Notes,
+the “Notes”).
+The Notes will be a further issuance of, and will form a single series with, (i) in the case of the 2021 Notes, the
+$2.25 billion aggregate principal amount of the 2.250% Notes due 2021,(ii) in the case of the 2026 Notes, the $2.00 billion aggregate principal amount of the 3.250% Notes due 2026 and (iii) in the case of the 2046 Notes, the $2.50 billion
+aggregate principal amount of the 4.650% Notes due 2046, in each case, issued on February 23, 2016. Upon completion of this latest offering of the Notes, Apple will have $3.00 billion aggregate principal amount of outstanding 2.250% Notes due
+2021, $3.25 billion aggregate principal amount of outstanding 3.250% Notes due 2026 and $4.00 billion aggregate principal amount of outstanding 4.650% Notes due 2046. The Notes are being issued pursuant to the indenture, dated as of April 29,
+2013 (the “Indenture”), between Apple and The Bank of New York Mellon Trust Company, N.A., as trustee, and the terms of the Notes are being established pursuant to the Officer’s Certificate, dated as of February 23, 2016 (the
+“Officer’s Certificate”), as supplemented by Supplement No. 1 to the Officer’s Certificate, dated as of March 24, 2016 ( “Supplement No. 1 to the Officer’s Certificate”).
+The Notes are being issued pursuant to Apple’s Registration Statement on Form S-3 filed with the Securities and Exchange Commission (the
+“SEC”) on April 29, 2013 (Reg. No. 333-188191) (the “Registration Statement”).
+Interest on the Notes will be payable
+semi-annually in arrears on February 23 and August 23 of each year, beginning on August 23, 2016, and on the applicable maturity date for each series of Notes.
+The 2021 Notes will mature on February 23, 2021, the 2026 Notes will mature on February 23, 2026 and the 2046 Notes will mature on
+February 23, 2046.
+The Notes will be Apple’s senior unsecured obligations and will rank equally with Apple’s other unsecured and
+unsubordinated debt from time to time outstanding (including the outstanding notes of such series issued on February 23, 2016).
+The foregoing
+description of the Notes and related agreements is qualified in its entirety by the terms of the Underwriting Agreement, the Indenture, the Officer’s Certificate (including the forms of the Notes) and Supplement No. 1 to the Officer’s
+Certificate. Apple is furnishing the Underwriting Agreement, Supplement No. 1 to the Officer’s Certificate and the forms of the Notes as Exhibits 1.1 and 4.1 through 4.4, respectively, hereto and they are incorporated herein by reference.
+The Indenture is filed as Exhibit 4.1 to the Registration Statement and the Officer’s Certificate is filed as Exhibit 4.1 to Apple’s Current Report on Form 8-K filed with the SEC on February 23, 2016. The computation of Apple’s
+ratio of earnings to fixed charges is filed as Exhibit 12.1 hereto, and is incorporated by reference into the Registration Statement. An opinion regarding the legality of the Notes is filed as Exhibit 5.1 hereto, and is incorporated by reference
+into the Registration Statement, and a consent relating to the incorporation of such opinion is incorporated by reference into the Registration Statement and is filed as Exhibit 23.1 hereto by reference to its inclusion within Exhibit 5.1.
+Item 9.01
+Financial Statements and Exhibits.
+(d)
+Exhibits
+Exhibit
+Number
+Exhibit Description
+1.1
+Underwriting Agreement, dated March 17, 2016, among Apple Inc. and Goldman, Sachs & Co., Deutsche Bank Securities Inc., J.P. Morgan Securities LLC and Merrill Lynch, Pierce, Fenner & Smith Incorporated, as representatives of
+the several underwriters named therein
+4.1
+Supplement No. 1 to the Officer’s Certificate, dated as of March 24, 2016
+4.2
+Form of Global Note representing the 2021 Notes
+4.3
+Form of Global Note representing the 2026 Notes
+4.4
+Form of Global Note representing the 2046 Notes
+5.1
+Opinion of O’Melveny & Myers LLP
+12.1
+Computation of Ratio of Earnings to Fixed Charges
+23.1
+Consent of O’Melveny & Myers LLP (included in the opinion filed as Exhibit 5.1)
+SIGNATURE
+Pursuant to the requirements of the Securities Exchange Act of 1934, the Registrant has duly caused this report to be signed on its behalf by the undersigned hereunto
+duly authorized.
+Date: March 24, 2016
+Apple Inc.
+By:
+/s/ Luca Maestri
+Luca Maestri
+Senior Vice President,
+Chief Financial Officer
+EXHIBIT INDEX
+Exhibit
+Number
+Exhibit Description
+1.1
+Underwriting Agreement, dated March 17, 2016, among Apple Inc. and Goldman, Sachs & Co., Deutsche Bank Securities Inc., J.P. Morgan Securities LLC and Merrill Lynch, Pierce, Fenner & Smith Incorporated, as representatives of
+the several underwriters named therein
+4.1
+Supplement No. 1 to the Officer’s Certificate, dated as of March 24, 2016
+4.2
+Form of Global Note representing the 2021 Notes
+4.3
+Form of Global Note representing the 2026 Notes
+4.4
+Form of Global Note representing the 2046 Notes
+5.1
+Opinion of O’Melveny & Myers LLP
+12.1
+Computation of Ratio of Earnings to Fixed Charges
+23.1
+Consent of O’Melveny & Myers LLP (included in the opinion filed as Exhibit 5.1)

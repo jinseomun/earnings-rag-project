@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-
+import json
 # Add src directory to Python path for direct execution
 src_dir = Path(__file__).parent.parent
 if str(src_dir) not in sys.path:
@@ -198,6 +198,12 @@ def main():
 
     transcript_text = load_transcript_from_json(event_info["call_id"])
     claims = extract_claims_with_llama(transcript_text)
+
+    CLAIMS_OUTPUT_PATH = Path("outputs/claims.json")
+    CLAIMS_OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(CLAIMS_OUTPUT_PATH, "w", encoding="utf-8") as f:
+        json.dump(claims, f, ensure_ascii=False, indent=2)
 
     if not claims:
         print("No claims extracted.")

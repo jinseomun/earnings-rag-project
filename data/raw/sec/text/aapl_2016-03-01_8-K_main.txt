@@ -1,0 +1,197 @@
+Form 8-K
+UNITED STATES
+SECURITIES AND EXCHANGE COMMISSION
+Washington, D.C. 20549
+FORM 8-K
+CURRENT REPORT
+Pursuant to Section 13 OR
+15(d) of The Securities Exchange Act of 1934
+February 26, 2016
+Date of Report (Date of earliest event reported)
+Apple Inc.
+(Exact name of Registrant as specified in its charter)
+California
+001-36743
+94-2404110
+(State or other jurisdiction
+of incorporation)
+(Commission
+File
+Number)
+(IRS. Employer
+Identification No.)
+1 Infinite Loop
+Cupertino, California 95014
+(Address of principal
+executive offices) (Zip Code)
+(408) 996-1010
+(Registrant’s telephone number, including area code)
+Not applicable
+(Former name or former address,
+if changed since last report.)
+Check the appropriate box below if the Form 8-K filing is intended to simultaneously satisfy the filing obligation of
+the Registrant under any of the following provisions:
+¨
+Written communications pursuant to Rule 425 under the Securities Act (17 CFR 230.425)
+¨
+Soliciting material pursuant to Rule 14a-12 under the Exchange Act (17 CFR 240.14a-12)
+¨
+Pre-commencement communications pursuant to Rule 14d-2(b) under the Exchange Act (17 CFR 240.14d-2(b))
+¨
+Pre-commencement communications pursuant to Rule 13e-4(c) under the Exchange Act (17 CFR 240.13e-4(c))
+Item 5.02
+Departure of Directors or Certain Officers; Election of Directors; Appointment of Certain Officers; Compensatory Arrangements of Certain Officers.
+(e)
+The Board of Directors of Apple Inc.
+previously adopted, subject to shareholder approval, an amendment and restatement of Apple’s 2014 Employee Stock Plan (the “2014 Plan”). Apple’s shareholders approved the amended and restated 2014 Plan at the Annual Meeting of
+Shareholders held on February 26, 2016 (the “Annual Meeting”). The amended and restated 2014 Plan, which became effective upon shareholder approval, increased the maximum amount payable as a cash bonus award that may qualify as
+performance-based compensation under Section 162(m) of the Internal Revenue Code to $30 million per person, per fiscal year.
+The foregoing brief
+description is qualified in its entirety by the text of the 2014 Plan, a copy of which is filed as Exhibit 10.1 hereto and incorporated herein by reference.
+Item 5.07 Submission of Matters to a Vote of Security Holders.
+At the Annual Meeting, Apple’s shareholders voted on the following eight proposals and cast their votes as described below.
+1.
+The individuals listed below were elected at the Annual Meeting to serve as directors of Apple until the next annual meeting of shareholders and until their
+successors are duly elected and qualified:
+For
+Against
+Abstained
+Broker Non-Vote
+James Bell
+3,083,679,346
+24,740,974
+5,663,021
+1,559,945,580
+Tim Cook
+3,095,246,110
+11,472,231
+7,365,000
+1,559,945,580
+Al Gore
+3,012,555,419
+93,815,156
+7,712,766
+1,559,945,580
+Bob Iger
+3,082,336,074
+26,966,576
+4,780,691
+1,559,945,580
+Andrea Jung
+2,909,845,673
+198,749,767
+5,487,901
+1,559,945,580
+Art Levinson
+3,062,321,116
+45,447,845
+6,314,380
+1,559,945,580
+Ron Sugar
+3,072,297,672
+35,589,720
+6,195,949
+1,559,945,580
+Sue Wagner
+3,100,054,215
+8,423,480
+5,605,646
+1,559,945,580
+2.
+A management proposal to ratify the appointment of Ernst & Young LLP as Apple’s independent registered public accounting firm for 2016, as described
+in the proxy materials. This proposal was approved.
+For
+Against
+Abstained
+Broker Non-Vote
+4,635,508,314
+23,344,080
+15,176,527
+0
+3.
+An advisory resolution to approve executive compensation, as described in the proxy materials. This proposal was approved.
+For
+Against
+Abstained
+Broker Non-Vote
+2,947,141,264
+149,713,014
+17,229,063
+1,559,945,580
+4.
+A management proposal to approve the amended and restated 2014 Plan to increase the maximum amount payable as a cash bonus award that may qualify as
+performance-based compensation under Section 162(m) of the Internal Revenue Code, as described in the proxy materials. This proposal was approved.
+For
+Against
+Abstained
+Broker Non-Vote
+2,948,340,725
+154,658,701
+11,083,915
+1,559,945,580
+5.
+A shareholder proposal entitled “Net-Zero Greenhouse Gas Emissions by 2030,” as described in the proxy materials. This proposal was not approved.
+For
+Against
+Abstained
+Broker Non-Vote
+201,192,777
+2,619,314,920
+293,575,644
+1,559,945,580
+6.
+A shareholder proposal regarding diversity among Apple’s board of directors and senior management, as described in the proxy materials. This proposal was
+not approved.
+For
+Against
+Abstained
+Broker Non-Vote
+153,235,024
+2,831,506,200
+129,342,117
+1,559,945,580
+7.
+A shareholder proposal entitled “Human Rights Review – High-Risk Regions,” as described in the proxy materials. This proposal was not approved.
+For
+Against
+Abstained
+Broker Non-Vote
+49,043,357
+2,744,937,657
+320,102,327
+1,559,945,580
+8.
+A shareholder proposal entitled “Shareholder Proxy Access,” as described in the proxy materials. This proposal was not approved.
+For
+Against
+Abstained
+Broker Non-Vote
+1,011,922,207
+2,083,600,907
+18,560,227
+1,559,945,580
+Item 9.01
+Financial Statements and Exhibits.
+(d)
+Exhibits.
+Exhibit
+Number
+Exhibit Description
+10.1
+Apple Inc. 2014 Employee Stock Plan, as amended and restated as of February 26, 2016.
+SIGNATURE
+Pursuant to the requirements of the Securities Exchange Act of 1934, the Registrant has duly caused this report to be signed on its behalf by the
+undersigned hereunto duly authorized.
+Date: March 1, 2016
+Apple Inc.
+By:
+/s/ D. Bruce Sewell
+D. Bruce Sewell
+Senior Vice President,
+General Counsel and Secretary
+Exhibit Index
+Exhibit
+Number
+Exhibit Description
+10.1
+Apple Inc. 2014 Employee Stock Plan, as amended and restated as of February 26, 2016.

@@ -3,7 +3,7 @@ import re
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Tuple
 from bs4 import BeautifulSoup
 
 import requests
@@ -96,23 +96,17 @@ def parse_filings_columnar(block: dict) -> List[Dict]:
 
 
 def get_all_filings(submissions_json: dict) -> List[Dict]:
-    """
-    recent + older filings JSON files까지 모두 합쳐서 반환
-    """
     all_filings = []
 
-    # 1) recent
     recent_block = submissions_json.get("filings", {}).get("recent", {})
     all_filings.extend(parse_filings_columnar(recent_block))
 
-    # 2) older files
     older_files = submissions_json.get("filings", {}).get("files", [])
     for file_info in older_files:
         name = file_info.get("name")
         if not name:
             continue
 
-        # 보통 submissions/CIKxxxx-submissions-001.json 같은 형태
         if name.startswith("/"):
             url = f"{BASE_DATA_URL}{name}"
         else:
@@ -126,12 +120,28 @@ def get_all_filings(submissions_json: dict) -> List[Dict]:
 
         time.sleep(0.2)
 
-    # 중복 제거
     dedup = {}
     for f in all_filings:
         dedup[f["accession_number"]] = f
 
     return list(dedup.values())
+
+
+def is_earnings_related_filing(filing: Dict) -> bool:
+    text = f"{filing.get('primary_document', '')} {filing.get('primary_doc_description', '')}".lower()
+
+    keywords = [
+        "results of operations",
+        "financial results",
+        "earnings",
+        "quarterly results",
+        "quarter ended",
+        "press release",
+        "data sheet",
+        "exhibit 99",
+        "item 2.02",
+    ]
+    return any(k in text for k in keywords)
 
 
 def filter_filings_by_date(
@@ -141,10 +151,6 @@ def filter_filings_by_date(
     limit: int = 10,
     prefer_on_or_before: bool = True,
 ) -> List[Dict]:
-    """
-    target_date와 가까운 filing을 고르되,
-    기본적으로는 target_date 이전(또는 당일) filings를 우선
-    """
     if form_types is None:
         form_types = ["10-Q", "10-K", "8-K"]
 
@@ -154,6 +160,7 @@ def filter_filings_by_date(
     for f in filings:
         if f["form"] not in form_types:
             continue
+
         try:
             filing_dt = datetime.strptime(f["filing_date"], "%Y-%m-%d").date()
         except Exception:
@@ -161,15 +168,17 @@ def filter_filings_by_date(
 
         delta_days = (target_dt - filing_dt).days
 
-        # 기본은 target_date 이전/당일 filings만
         if prefer_on_or_before and delta_days < 0:
             continue
 
-        candidates.append((abs(delta_days), delta_days, filing_dt, f))
+        earnings_bonus = 0
+        if is_earnings_related_filing(f):
+            earnings_bonus = -1000
 
-    # 가까운 날짜 순, 같은 거리면 더 최근 filing 우선
-    candidates.sort(key=lambda x: (x[0], x[1]))
-    return [item[3] for item in candidates[:limit]]
+        candidates.append((earnings_bonus, abs(delta_days), delta_days, filing_dt, f))
+
+    candidates.sort(key=lambda x: (x[0], x[1], x[2]))
+    return [item[4] for item in candidates[:limit]]
 
 
 def build_filing_folder_url(cik: str, accession_number: str) -> str:
@@ -198,15 +207,24 @@ def get_archive_items(index_json: dict) -> List[dict]:
     return index_json.get("directory", {}).get("item", [])
 
 
-def is_probably_useful_txt(filename: str) -> bool:
+def is_candidate_document(filename: str) -> bool:
     name = filename.lower()
 
-    if not name.endswith(".txt"):
+    allowed_ext = (".htm", ".html", ".txt")
+    if not name.endswith(allowed_ext):
         return False
 
     bad_keywords = [
-        ".xsd",
         ".xml",
+        ".xsd",
+        ".xls",
+        ".xlsx",
+        ".zip",
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".gif",
+        ".pdf",
         "_cal",
         "_def",
         "_lab",
@@ -217,6 +235,8 @@ def is_probably_useful_txt(filename: str) -> bool:
         "lab.xml",
         "pre.xml",
         "cal.xml",
+        "graphic",
+        "image",
     ]
     if any(bad in name for bad in bad_keywords):
         return False
@@ -224,51 +244,159 @@ def is_probably_useful_txt(filename: str) -> bool:
     return True
 
 
-def score_txt_candidate(filename: str, primary_document: str) -> int:
-    name = filename.lower()
-    primary = primary_document.lower()
+def classify_archive_item(item_name: str, filing: Dict) -> Tuple[str, int]:
+    """
+    return: (doc_role, score)
+    doc_role:
+      - main
+      - exhibit_99_1
+      - exhibit_99_2
+      - exhibit_99_other
+      - other
+    """
+    name = item_name.lower()
+    primary = filing.get("primary_document", "").lower()
+    primary_base = primary.rsplit(".", 1)[0] if "." in primary else primary
+    name_base = name.rsplit(".", 1)[0] if "." in name else name
 
     score = 0
+    doc_role = "other"
 
-    if name == primary and name.endswith(".txt"):
-        score += 100
+    if name == primary:
+        score += 200
+        doc_role = "main"
+    elif name_base == primary_base:
+        score += 150
+        doc_role = "main"
 
-    primary_base = primary.rsplit(".", 1)[0]
-    name_base = name.rsplit(".", 1)[0]
+    # exhibit 99.x 쪽 강한 우선순위
+    exhibit_patterns_99_1 = [
+        "99.1", "99_1", "99-1", "ex99_1", "ex99-1", "ex991", "ex-99.1"
+    ]
+    exhibit_patterns_99_2 = [
+        "99.2", "99_2", "99-2", "ex99_2", "ex99-2", "ex992", "ex-99.2"
+    ]
+    exhibit_patterns_99 = [
+        "99.", "99_", "99-", "ex99", "ex-99", "exhibit99"
+    ]
 
-    if name.endswith(".txt") and name_base == primary_base:
-        score += 80
+    if any(p in name for p in exhibit_patterns_99_1):
+        score += 180
+        doc_role = "exhibit_99_1"
+    elif any(p in name for p in exhibit_patterns_99_2):
+        score += 170
+        doc_role = "exhibit_99_2"
+    elif any(p in name for p in exhibit_patterns_99):
+        score += 120
+        doc_role = "exhibit_99_other"
 
-    if name.endswith(".txt"):
-        score += 30
+    # earnings 관련 키워드
+    positive_keywords = [
+        "press",
+        "release",
+        "earnings",
+        "results",
+        "quarter",
+        "financial",
+        "datasheet",
+        "data-sheet",
+        "factsheet",
+        "factsheet",
+    ]
+    for kw in positive_keywords:
+        if kw in name:
+            score += 20
 
-    if "complete" in name or "submission" in name:
-        score -= 10
+    # 불필요 문서 감점
+    negative_keywords = [
+        "10.1",
+        "4.1",
+        "4.2",
+        "4.3",
+        "4.4",
+        "5.1",
+        "12.1",
+        "23.1",
+        "underwriting",
+        "indenture",
+        "note",
+        "officer",
+        "opinion",
+        "consent",
+        "fixedcharges",
+        "ratio",
+    ]
+    for kw in negative_keywords:
+        if kw in name:
+            score -= 40
 
-    if primary_base in name:
+    if name.endswith(".htm") or name.endswith(".html"):
         score += 10
 
-    return score
+    if name.endswith(".txt"):
+        score += 5
+
+    return doc_role, score
 
 
-def choose_best_txt_filename(filing: Dict, archive_items: List[dict]) -> Optional[str]:
-    primary_document = filing["primary_document"]
+def choose_relevant_documents(
+    filing: Dict,
+    archive_items: List[dict],
+    max_docs: int = 5,
+) -> List[Dict]:
+    candidates = []
 
-    txt_candidates = []
     for item in archive_items:
         name = item.get("name", "")
-        if is_probably_useful_txt(name):
-            txt_candidates.append(name)
+        if not name or not is_candidate_document(name):
+            continue
 
-    if not txt_candidates:
-        return None
+        doc_role, score = classify_archive_item(name, filing)
+        candidates.append(
+            {
+                "name": name,
+                "doc_role": doc_role,
+                "score": score,
+            }
+        )
 
-    ranked = sorted(
-        txt_candidates,
-        key=lambda x: score_txt_candidate(x, primary_document),
-        reverse=True,
-    )
-    return ranked[0]
+    if not candidates:
+        return []
+
+    candidates.sort(key=lambda x: x["score"], reverse=True)
+
+    selected = []
+    seen_names = set()
+    seen_roles = set()
+
+    for c in candidates:
+        name = c["name"]
+        role = c["doc_role"]
+
+        if name in seen_names:
+            continue
+
+        # main, ex99_1, ex99_2는 가능하면 각각 하나씩 챙김
+        if role in {"main", "exhibit_99_1", "exhibit_99_2"}:
+            if role in seen_roles:
+                continue
+            selected.append(c)
+            seen_names.add(name)
+            seen_roles.add(role)
+            continue
+
+    # 아직 너무 적으면 점수 높은 나머지 추가
+    for c in candidates:
+        if len(selected) >= max_docs:
+            break
+        if c["name"] in seen_names:
+            continue
+        if c["score"] < 40:
+            continue
+        selected.append(c)
+        seen_names.add(c["name"])
+
+    return selected[:max_docs]
 
 
 def download_text(url: str) -> str:
@@ -356,7 +484,10 @@ def clean_sec_filing_text(raw_text: str) -> str:
         cleaned_lines.append(line)
 
     text = "\n".join(cleaned_lines)
-    text = re.split(r"\nEX-\d+(\.\d+)?\n", text, maxsplit=1, flags=re.IGNORECASE)[0]
+
+    # 예전처럼 EX- 뒤를 무조건 잘라버리지 않음
+    # exhibit 본문이 실제로 필요한 경우가 있으므로 삭제
+
     text = re.sub(r"\r", "\n", text)
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n\s*\n\s*\n+", "\n\n", text)
@@ -376,41 +507,64 @@ def save_clean_text(company: str, filing: Dict, text: str, suffix_name: str) -> 
     return out_path
 
 
-def fetch_one_filing_txt_only(cik: str, ticker: str, filing: Dict) -> Optional[Dict]:
+def fetch_one_filing_with_exhibits(cik: str, ticker: str, filing: Dict) -> List[Dict]:
     accession_number = filing["accession_number"]
 
     index_json = fetch_archive_index_json(cik, accession_number)
     archive_items = get_archive_items(index_json) if index_json else []
 
-    chosen_filename = choose_best_txt_filename(filing, archive_items)
+    chosen_docs = choose_relevant_documents(filing, archive_items, max_docs=5)
 
-    if not chosen_filename:
+    if not chosen_docs:
         print(
             f"[SKIP] {filing['form']} {filing['filing_date']} | "
-            f"No usable .txt source found."
+            f"No usable filing/exhibit documents found."
         )
-        return None
-
-    source_url = build_filing_document_url(cik, accession_number, chosen_filename)
+        return []
 
     print(
         f"[INFO] {filing['form']} {filing['filing_date']} | "
-        f"txt source found: {chosen_filename}"
+        f"selected docs: {[d['name'] for d in chosen_docs]}"
     )
 
-    raw_text = download_text(source_url)
-    clean_text = clean_sec_filing_text(raw_text)
-    text_path = save_clean_text(ticker, filing, clean_text, "clean")
+    results = []
 
-    return {
-        "ticker": ticker.upper(),
-        "form": filing["form"],
-        "filing_date": filing["filing_date"],
-        "accession_number": accession_number,
-        "source_filename": chosen_filename,
-        "source_url": source_url,
-        "clean_text_path": str(text_path),
-    }
+    for doc in chosen_docs:
+        source_filename = doc["name"]
+        doc_role = doc["doc_role"]
+
+        source_url = build_filing_document_url(cik, accession_number, source_filename)
+
+        try:
+            raw_text = download_text(source_url)
+            clean_text = clean_sec_filing_text(raw_text)
+
+            if len(clean_text.strip()) < 200:
+                print(f"[SKIP] too short after cleaning: {source_filename}")
+                continue
+
+            suffix = doc_role
+            text_path = save_clean_text(ticker, filing, clean_text, suffix)
+
+            results.append(
+                {
+                    "ticker": ticker.upper(),
+                    "form": filing["form"],
+                    "filing_date": filing["filing_date"],
+                    "accession_number": accession_number,
+                    "doc_role": doc_role,
+                    "source_filename": source_filename,
+                    "source_url": source_url,
+                    "clean_text_path": str(text_path),
+                }
+            )
+
+        except Exception as e:
+            print(f"[WARN] Failed to fetch {source_filename} | {e}")
+
+        time.sleep(0.2)
+
+    return results
 
 
 def fetch_sec_filings_for_ticker_near_date(
@@ -420,9 +574,6 @@ def fetch_sec_filings_for_ticker_near_date(
     limit: int = 3,
     sleep_sec: float = 0.2,
 ) -> List[Dict]:
-    """
-    target_date 근처(기본적으로 target_date 이전/당일)의 filings를 가져옴
-    """
     cik = find_cik_by_ticker(ticker)
     if not cik:
         raise ValueError(f"CIK not found for ticker: {ticker}")
@@ -440,13 +591,13 @@ def fetch_sec_filings_for_ticker_near_date(
 
     print(f"[INFO] Selected filings near {target_date} for {ticker}:")
     for f in selected:
-        print(f"  - {f['form']} {f['filing_date']} {f['accession_number']}")
+        desc = f.get("primary_doc_description", "")
+        print(f"  - {f['form']} {f['filing_date']} {f['accession_number']} | {desc}")
 
     results = []
     for filing in selected:
-        item = fetch_one_filing_txt_only(cik, ticker, filing)
-        if item is not None:
-            results.append(item)
+        items = fetch_one_filing_with_exhibits(cik, ticker, filing)
+        results.extend(items)
         time.sleep(sleep_sec)
 
     return results
@@ -463,9 +614,9 @@ def main():
         limit=3,
     )
 
-    print("\n=== Saved TXT Filings ===")
+    print("\n=== Saved SEC Documents ===")
     if not results:
-        print("No usable txt filings found.")
+        print("No usable filings/exhibits found.")
         return
 
     for item in results:

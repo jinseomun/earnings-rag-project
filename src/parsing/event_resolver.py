@@ -7,12 +7,12 @@ EMBED_FILE = Path("data/processed/earnings_call_chunks_train.json")
 
 def infer_quarter_from_call_date(date_str: str):
     """
-    earnings call date 기준으로 fiscal quarter를 대략 추정
+    call date를 달력 기준 quarter로 매핑
     예:
-    2017-01 ~ 2017-03  -> 2016Q4
-    2017-04 ~ 2017-06  -> 2017Q1
-    2017-07 ~ 2017-09  -> 2017Q2
-    2017-10 ~ 2017-12  -> 2017Q3
+    2016-01 ~ 2016-03 -> 2016Q1
+    2016-04 ~ 2016-06 -> 2016Q2
+    2016-07 ~ 2016-09 -> 2016Q3
+    2016-10 ~ 2016-12 -> 2016Q4
     """
     if not date_str:
         return None
@@ -21,14 +21,13 @@ def infer_quarter_from_call_date(date_str: str):
     y, m = dt.year, dt.month
 
     if 1 <= m <= 3:
-        return f"{y-1}Q4"
-    elif 4 <= m <= 6:
         return f"{y}Q1"
-    elif 7 <= m <= 9:
+    elif 4 <= m <= 6:
         return f"{y}Q2"
-    else:
+    elif 7 <= m <= 9:
         return f"{y}Q3"
-
+    else:
+        return f"{y}Q4"
 
 def list_events():
     if not EMBED_FILE.exists():
