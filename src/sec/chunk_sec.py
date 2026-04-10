@@ -4,28 +4,25 @@ import re
 from pathlib import Path
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-CHUNK_SIZE = 1800
-CHUNK_OVERLAP = 150
+RAW_SEC_TEXT_DIR = Path("data/raw/sec/text")
+OUTPUT_FILE = Path("data/processed/sec_chunks.json")
+OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
 
+CHUNK_SIZE = 700
+CHUNK_OVERLAP = 100
 
 splitter = RecursiveCharacterTextSplitter(
     chunk_size=CHUNK_SIZE,
     chunk_overlap=CHUNK_OVERLAP,
-    separators=["\n\n", "\n", ". ", " ", ""]
+    separators=["\n\n", "\n", ". ", "; ", ": ", ", ", " ", ""]
 )
+
 
 def chunk_text(text: str):
     text = text.strip()
     if not text:
         return []
     return splitter.split_text(text)
-
-RAW_SEC_TEXT_DIR = Path("data/raw/sec/text")
-OUTPUT_FILE = Path("data/processed/sec_chunks.json")
-OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-
-CHUNK_SIZE = 1800
-CHUNK_OVERLAP = 150
 
 
 def load_text(file_path: Path) -> str:
@@ -38,9 +35,12 @@ def parse_sec_filename(file_path: Path) -> dict:
     파일명 예시:
     aapl_2026-01-30_10-Q_clean.txt
     """
-    stem = file_path.stem  # aapl_2026-01-30_10-Q_clean
+    stem = file_path.stem
 
-    match = re.match(r"^([a-zA-Z0-9]+)_(\d{4}-\d{2}-\d{2})_([A-Za-z0-9\-]+)_clean$", stem)
+    match = re.match(
+        r"^([a-zA-Z0-9]+)_(\d{4}-\d{2}-\d{2})_([A-Za-z0-9\-]+)_clean$",
+        stem
+    )
     if not match:
         return {
             "ticker": None,
@@ -57,14 +57,6 @@ def parse_sec_filename(file_path: Path) -> dict:
         "form_type": form_type.upper(),
         "source_file": file_path.name,
     }
-
-
-
-def chunk_text(text: str):
-    text = text.strip()
-    if not text:
-        return []
-    return splitter.split_text(text)
 
 
 def build_sec_chunks():

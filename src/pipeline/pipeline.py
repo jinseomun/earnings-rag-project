@@ -1,4 +1,10 @@
+import sys
 from pathlib import Path
+
+# Add src directory to Python path for direct execution
+src_dir = Path(__file__).parent.parent
+if str(src_dir) not in sys.path:
+    sys.path.insert(0, str(src_dir))
 
 from claims.claim_extraction import extract_claims_with_llama
 from retrieval.retrieve import retrieve_top_chunks_for_claim
